@@ -1,0 +1,527 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>telegram style sim</title>
+    <style>
+      :root { --bg: #fff; --fg: #000; --border: #ccc; --modal-bg: #fff; --card-bg: #fff; --result-bg: #fff; --toast-bg: #333; --toast-fg: #fff; --overlay: rgba(0,0,0,.3); }
+      .dark { --bg: #1a1a2e; --fg: #e0e0e0; --border: #333; --modal-bg: #16213e; --card-bg: #1a1a2e; --result-bg: #16213e; --toast-bg: #e0e0e0; --toast-fg: #1a1a2e; --overlay: rgba(0,0,0,.6); }
+      html, body { height: 100%; margin: 0; font-family: sans-serif; background: var(--bg); color: var(--fg); }
+      * { -webkit-tap-highlight-color: transparent; }
+      button { border-radius: 0; -webkit-appearance: none; appearance: none; min-height: 44px; border: 1px solid var(--border); background: var(--card-bg); color: var(--fg); padding: 0.5rem 1rem; font-size: 1rem; cursor: pointer; }
+      #text { width: 100%; height: 100%; border: none; resize: none; font-size: 1.2rem; padding: 1rem; box-sizing: border-box; display: block; background: var(--bg); color: var(--fg); }
+      #text:focus { outline: none; }
+      #stylize { position: fixed; bottom: calc(1rem + env(safe-area-inset-bottom, 0px)); right: 1rem; padding: 0.75rem 1.25rem; font-size: 1rem; cursor: pointer; z-index: 1; }
+      #settings-btn { position: fixed; bottom: calc(1rem + env(safe-area-inset-bottom, 0px)); left: 1rem; padding: 0.5rem 0.75rem; font-size: 1.25rem; cursor: pointer; z-index: 1; }
+      #backdrop { position: fixed; inset: 0; background: var(--overlay); z-index: 5; opacity: 0; pointer-events: none; transition: opacity .2s; }
+      #backdrop.show { opacity: 1; pointer-events: auto; }
+      #modal { position: fixed; bottom: 0; left: 0; right: 0; max-height: 75vh; background: var(--modal-bg); border-top: 1px solid var(--border); display: flex; flex-direction: column; transform: translateY(100%); transition: transform .2s; z-index: 6; }
+      #modal.open { transform: translateY(0); }
+      #modal-header { display: flex; justify-content: space-between; align-items: center; padding: 0.75rem 1rem; border-bottom: 1px solid var(--border); }
+      #modal-header button { background: none; border: none; font-size: 1.25rem; cursor: pointer; padding: 0.25rem; color: var(--fg); }
+      #strip { display: flex; overflow-x: auto; gap: 0.5rem; padding: 0.75rem 1rem; flex-shrink: 0; }
+      .scard { flex-shrink: 0; min-width: 80px; padding: 0.5rem 0.75rem; border: 1px solid var(--border); cursor: pointer; text-align: center; user-select: none; display: flex; flex-direction: column; align-items: center; gap: 0.25rem; background: var(--card-bg); }
+      .scard .icon { font-size: 1.5rem; }
+      .scard .title { font-size: 0.8rem; white-space: nowrap; }
+      #result-wrap { flex: 1; padding: 0 1rem 0.75rem; display: flex; flex-direction: column; overflow: hidden; position: relative; }
+      #result { width: 100%; flex: 1; resize: none; border: 1px solid var(--border); padding: 0.5rem; font-size: 1rem; box-sizing: border-box; min-height: 120px; overflow-y: auto; background: var(--result-bg); color: var(--fg); }
+      #copy-btn { position: absolute; bottom: 1.25rem; right: 1.5rem; min-height: 32px; padding: 0.3rem 0.6rem; font-size: 0.8rem; z-index: 2; opacity: 0.8; }
+      #submodal { display: none; position: fixed; inset: 0; background: var(--modal-bg); z-index: 10; flex-direction: column; padding: 1rem; }
+      #submodal.open { display: flex; }
+      #submodal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; color: var(--fg); }
+      #submodal-header button { background: none; border: none; font-size: 1.25rem; cursor: pointer; padding: 0.25rem; color: var(--fg); }
+      #emoji-outer { position: relative; display: flex; flex-direction: column; align-items: center; margin-bottom: 0.75rem; }
+      .emoji-large { font-size: 4rem; cursor: pointer; user-select: none; padding: 0.5rem; line-height: 1; }
+      #emoji-grid { display: none; position: absolute; top: 100%; left: 50%; transform: translateX(-50%); width: 280px; max-height: 180px; overflow-y: auto; background: var(--card-bg); border: 1px solid var(--border); z-index: 15; padding: 0.25rem; flex-wrap: wrap; align-content: flex-start; color: #000; }
+      #emoji-grid.show { display: flex; }
+      #emoji-grid span { width: 12.5%; text-align: center; font-size: 1.3rem; cursor: pointer; padding: 0.15rem 0; line-height: 1.6; }
+      #emoji-grid span:hover { background: #eee; }
+      #submodal input, #submodal textarea { width: 100%; margin-bottom: 0.75rem; padding: 0.5rem; font-size: 16px; border: 1px solid var(--border); box-sizing: border-box; background: var(--bg); color: var(--fg); }
+      #submodal textarea { flex: 1; resize: none; }
+      #submodal .row { display: flex; gap: 0.5rem; justify-content: flex-end; }
+      #submodal button { padding: 0.5rem 1rem; font-size: 1rem; cursor: pointer; }
+      #toast { position: fixed; top: 1rem; left: 50%; transform: translateX(-50%); background: var(--toast-bg); color: var(--toast-fg); padding: 0.5rem 1rem; font-size: 0.9rem; opacity: 0; transition: opacity .2s; pointer-events: none; z-index: 20; }
+      #toast.show { opacity: 1; }
+      #settings-modal { position: fixed; inset: 0; z-index: 25; display: none; align-items: center; justify-content: center; }
+      #settings-modal.open { display: flex; }
+      #settings-panel { background: var(--modal-bg); border: 1px solid var(--border); padding: 1.5rem; max-width: 360px; width: 90%; position: relative; display: flex; flex-direction: column; gap: 1rem; }
+      #settings-panel h2 { margin: 0 0 0.5rem; font-size: 1.2rem; }
+      #settings-close { position: absolute; top: 0.5rem; right: 0.75rem; background: none; border: none; font-size: 1.5rem; cursor: pointer; padding: 0.25rem; min-height: auto; color: var(--fg); }
+      .srow { display: flex; align-items: center; justify-content: space-between; gap: 1rem; }
+      .srow label { font-size: 0.9rem; flex-shrink: 0; }
+      .srow input[type="range"] { flex: 1; }
+      .srow select, .srow input[type="number"] { padding: 0.5rem 0.75rem; font-size: 0.9rem; border: 1px solid var(--border); background: var(--card-bg); color: var(--fg); min-height: 44px; box-sizing: border-box; border-radius: 0; -webkit-appearance: none; appearance: none; }
+      .srow .val { font-size: 0.85rem; min-width: 2.5rem; text-align: right; }
+      .toggle-wrap { display: flex; align-items: center; gap: 0.5rem; cursor: pointer; border: 1px solid var(--border); padding: 0.5rem 1rem; min-height: 44px; box-sizing: border-box; background: var(--card-bg); }
+      .toggle-wrap:active { opacity: 0.7; }
+      .toggle { font-size: 0.9rem; user-select: none; background: none; border: none; }
+      @media (max-width: 500px) {
+        #text { font-size: 1rem; }
+        #result { font-size: 14px; }
+        #emoji-grid { width: calc(100vw - 2rem); left: 0; transform: none; max-height: 40vh; }
+        #emoji-grid span { width: 10%; font-size: 1.5rem; padding: 0.2rem 0; }
+        #settings-panel { max-width: 100%; width: 100%; height: 100%; border: none; }
+        #settings-panel h2 { margin-top: 0.5rem; }
+      }
+    </style>
+  </head>
+  <body>
+    <textarea id="text" placeholder="type something..."></textarea>
+    <button id="settings-btn">&#9881;</button>
+    <button id="stylize">stylize</button>
+    <div id="backdrop"></div>
+    <div id="modal">
+      <div id="modal-header">
+        <span>stylize</span>
+        <button id="close-modal">&times;</button>
+      </div>
+      <div id="strip"></div>
+      <div id="result-wrap">
+        <textarea id="result" readonly></textarea>
+        <button id="copy-btn" style="display:none">copy</button>
+      </div>
+    </div>
+    <div id="submodal">
+      <div id="submodal-header">
+        <span id="submodal-label">create style</span>
+        <button id="close-submodal">&times;</button>
+      </div>
+      <div id="emoji-outer">
+        <div id="emoji-preview" class="emoji-large">&#x1F4DC;</div>
+        <div id="emoji-grid"></div>
+      </div>
+      <input id="new-title" placeholder="title" maxlength="32">
+      <textarea id="new-body" placeholder="style instructions..." rows="5"></textarea>
+      <div class="row">
+        <button id="cancel-style">cancel</button>
+        <button id="save-style">save</button>
+      </div>
+    </div>
+    <div id="settings-modal">
+      <div id="backdrop2" style="position:fixed;inset:0;background:var(--overlay);z-index:-1;"></div>
+      <div id="settings-panel">
+        <button id="settings-close">&times;</button>
+        <h2>settings</h2>
+        <div class="srow">
+          <label>dark mode</label>
+          <div class="toggle-wrap" id="dark-toggle-wrap">
+            <div class="toggle" id="dark-toggle"></div>
+          </div>
+        </div>
+        <div class="srow">
+          <label>model</label>
+          <select id="model-select">
+            <option value="llama-scout">llama-scout</option>
+            <option value="openai">openai</option>
+            <option value="mistral">mistral</option>
+            <option value="llama">llama</option>
+          </select>
+        </div>
+        <div class="srow">
+          <label>temperature</label>
+          <input type="range" id="temp-range" min="0" max="2" step="0.1" value="1.0">
+          <span class="val" id="temp-val">1.0</span>
+        </div>
+        <div class="srow">
+          <label>max tokens</label>
+          <input type="number" id="maxtks-input" min="64" max="8192" step="64" value="1024">
+        </div>
+      </div>
+    </div>
+    <div id="toast"></div>
+    <script>
+      const textEl = document.getElementById('text');
+      const resultEl = document.getElementById('result');
+      const backdrop = document.getElementById('backdrop');
+      const modal = document.getElementById('modal');
+      const strip = document.getElementById('strip');
+      const submodal = document.getElementById('submodal');
+      const toast = document.getElementById('toast');
+      const copyBtn = document.getElementById('copy-btn');
+      const settingsModal = document.getElementById('settings-modal');
+      const darkToggle = document.getElementById('dark-toggle');
+      const modelSelect = document.getElementById('model-select');
+      const tempRange = document.getElementById('temp-range');
+      const tempVal = document.getElementById('temp-val');
+      const maxtksInput = document.getElementById('maxtks-input');
+      const BUILTINS = [
+        { _b: true, title: 'formal', icon: '&#x1F4DC;', body: 'Rewrite the text in formal style. Use proper capitalization, punctuation, and fitting formal grammar.' },
+        { _b: true, title: 'short', icon: '&#x1F4DD;', body: 'Rewrite to be very short and concise. Remove unnecessary words.' },
+        { _b: true, title: 'corp', icon: '&#x1F3E2;', body: 'Rewrite in corporate jargon. Use buzzwords like synergy, leverage, optimize, circle back.' },
+        { _b: true, title: 'biblical', icon: '&#x271D;&#xFE0F;', body: 'Rewrite in the style of the King James Bible. Use thee, thou, shalt, and archaic English.' },
+      ];
+      const isSaved = (s) => !s._b && s.id;
+      const loadStyles = () => {
+        try {
+          const s = JSON.parse(localStorage.styles || '[]');
+          let dirty = false;
+          s.forEach(x => {
+            if(!x.id) {
+              x.id = Math.random().toString(36).slice(2, 8); dirty = true;
+            }
+          });
+          if(dirty) localStorage.styles = JSON.stringify(s);
+          return s;
+        } catch {
+          return [];
+        }
+      };
+      const saveStyles = (styles) => { localStorage.styles = JSON.stringify(styles); };
+      const W = 4096, MIN = 3, MAX = 18;
+      const ABC = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz-._~!()*,:@$<>?{}[]^`|/';
+      const BASE = ABC.length;
+      const lz77Pack = (bytes) => {
+        const out = [];
+        for(let i = 0; i < bytes.length;) {
+          const end = Math.min(i + MAX, bytes.length);
+          let bd = 0, bl = 0;
+          const ws = Math.max(0, i - W);
+          for(let j = ws; j < i; ++j) {
+            let l = 0;
+            while(i + l < end && j + l < bytes.length && bytes[j + l] === bytes[i + l]) l++;
+            if(l >= MIN && l > bl) { bl = l; bd = i - j; }
+          }
+          if(bl >= MIN) {
+            out.push(0xFF, bd >> 8, bd & 0xFF, bl - MIN);
+            i += bl;
+          } else {
+            if(bytes[i] === 0x00 || bytes[i] === 0xFF) out.push(0x00);
+            out.push(bytes[i]);
+            ++i;
+          }
+        }
+        return new Uint8Array(out);
+      };
+      const lz77Unpack = (c) => {
+        const out = [];
+        for(let i = 0; i < c.length;) {
+          if(c[i] === 0xFF) {
+            const d = (c[i+1] << 8) | c[i+2], l = c[i+3] + MIN;
+            i += 4;
+            const s = out.length - d;
+            for(let j = 0; j < l; ++j) out.push(out[s + j]);
+          } else if(c[i] === 0x00) {
+            out.push(c[i+1]);
+            i += 2;
+          } else {
+            out.push(c[i]);
+            ++i;
+          }
+        }
+        return new Uint8Array(out);
+      };
+      const b85enc = (bytes) => {
+        const n = bytes.length;
+        const p = ABC[Math.floor(n / BASE)] + ABC[n % BASE];
+        let v = 0n;
+        for(const b of bytes) v = (v << 8n) | BigInt(b);
+        let r = '';
+        while(v > 0n) {
+          r = ABC[Number(v % BigInt(BASE))] + r; v /= BigInt(BASE);
+        }
+        return p + r;
+      };
+      const b85dec = (s) => {
+        const n = ABC.indexOf(s[0]) * BASE + ABC.indexOf(s[1]);
+        if(n <= 0) return new Uint8Array(0);
+        let v = 0n;
+        for(let i = 2; i < s.length; i++) v = v * BigInt(BASE) + BigInt(ABC.indexOf(s[i]));
+        if(v === 0n) return new Uint8Array(n);
+        const bytes = [];
+        while(v > 0n) { bytes.unshift(Number(v & 0xFFn)); v >>= 8n; }
+        while(bytes.length < n) bytes.unshift(0);
+        return new Uint8Array(bytes);
+      };
+      const packStyle = (icon, title, body, id) => {
+        const cp = icon.codePointAt(0) || 0x1F4DC;
+        const tenc = new TextEncoder().encode(title);
+        const benc = new TextEncoder().encode(body);
+        const idenc = new TextEncoder().encode(id || '');
+        const buf = new Uint8Array(4 + 1 + tenc.length + 2 + benc.length + 1 + idenc.length);
+        let o = 0;
+        new DataView(buf.buffer).setUint32(o, cp); o += 4;
+        buf[o++] = Math.min(tenc.length, 255);
+        buf.set(tenc, o); o += tenc.length;
+        new DataView(buf.buffer).setUint16(o, benc.length); o += 2;
+        buf.set(benc, o); o += benc.length;
+        buf[o++] = idenc.length;
+        buf.set(idenc, o);
+        return b85enc(lz77Pack(buf));
+      };
+      const unpackStyle = (s) => {
+        try {
+          const buf = lz77Unpack(b85dec(s));
+          if(buf.length < 8) return null;
+          let o = 0;
+          const cp = new DataView(buf.buffer, buf.byteOffset + o, 4).getUint32(0); o += 4;
+          if(cp < 0 || cp > 0x10FFFF) return null;
+          const tlen = buf[o++];
+          const title = new TextDecoder().decode(buf.slice(o, o + tlen)); o += tlen;
+          const blen = new DataView(buf.buffer, buf.byteOffset + o, 2).getUint16(0); o += 2;
+          const body = new TextDecoder().decode(buf.slice(o, o + blen)); o += blen;
+          const ilen = buf[o++];
+          const id = new TextDecoder().decode(buf.slice(o, o + ilen));
+          if(!title || !body) return null;
+          return { icon: String.fromCodePoint(cp), title, body, id: id || undefined };
+        } catch {
+          return null;
+        }
+      };
+      const showToast = (msg) => {
+        toast.textContent = msg;
+        toast.classList.add('show');
+        setTimeout(() => toast.classList.remove('show'), 2000);
+      };
+      const getSettings = () => {
+        try {
+          return JSON.parse(localStorage.settings || '{}');
+        } catch {
+          return {};
+        }
+      };
+      const saveSettings = (s) => { localStorage.settings = JSON.stringify(s); };
+      const applyDark = (on) => {
+        document.documentElement.classList.toggle('dark', on);
+        darkToggle.textContent = on ? 'on' : 'off';
+      };
+      const initSettings = () => {
+        const s = getSettings();
+        applyDark(!!s.dark);
+        modelSelect.value = s.model || 'llama-scout';
+        tempRange.value = s.temp != null ? s.temp : 1.0;
+        tempVal.textContent = tempRange.value;
+        maxtksInput.value = s.maxtks || 1024;
+      };
+      const gatherSettings = () => ({
+        dark: document.documentElement.classList.contains('dark'),
+        model: modelSelect.value,
+        temp: parseFloat(tempRange.value),
+        maxtks: parseInt(maxtksInput.value) || 1024,
+      });
+      tempRange.addEventListener('input', () => { tempVal.textContent = tempRange.value; });
+      document.getElementById('dark-toggle-wrap').addEventListener('click', () => {
+        const on = !document.documentElement.classList.contains('dark');
+        applyDark(on);
+        const s = gatherSettings(); saveSettings(s);
+      });
+      const persistSettings = () => { const s = gatherSettings(); saveSettings(s); };
+      modelSelect.addEventListener('change', persistSettings);
+      tempRange.addEventListener('change', persistSettings);
+      maxtksInput.addEventListener('change', persistSettings);
+      document.getElementById('settings-btn').addEventListener('click', () => {
+        settingsModal.classList.add('open');
+      });
+      document.getElementById('settings-close').addEventListener('click', () => {
+        settingsModal.classList.remove('open');
+      });
+      document.getElementById('backdrop2')?.addEventListener('click', () => {
+        settingsModal.classList.remove('open');
+      });
+      const style = async (text, stylePrompt) => {
+        const s = getSettings();
+        resultEl.value = '';
+        copyBtn.style.display = 'none';
+        try {
+          const resp = await fetch('/send', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              text,
+              style: stylePrompt,
+              model: s.model || 'llama-scout',
+              temperature: s.temp != null ? s.temp : 1.0,
+              max_tokens: s.maxtks || 1024,
+            })
+          });
+          if(!resp.ok) {
+            const err = await resp.json().catch(() => ({ error: resp.statusText }));
+            throw new Error(err.error || 'request failed');
+          }
+          const reader = resp.body.getReader();
+          const decoder = new TextDecoder();
+          while(true) {
+            const { done, value } = await reader.read();
+            if(done) break;
+            resultEl.value += decoder.decode(value, { stream: true });
+          }
+          if(resultEl.value) copyBtn.style.display = 'block';
+        } catch(e) {
+          resultEl.value = '';
+          showToast('error: ' + e.message);
+          copyBtn.style.display = 'none';
+        }
+      };
+      const renderStrip = () => {
+        strip.innerHTML = '';
+        const n = document.createElement('div');
+        n.className = 'scard';
+        n.innerHTML = '<div class="icon">+</div><div class="title">new</div>';
+        n.addEventListener('click', () => openSubmodal());
+        strip.appendChild(n);
+        const all = [...loadStyles(), ...BUILTINS];
+        for(const s of all) {
+          const c = document.createElement('div');
+          c.className = 'scard';
+          c.innerHTML = `<div class="icon">${s.icon || '&#x1F4C4;'}</div><div class="title">${s.title}</div>`;
+          if(isSaved(s)) {
+            const row = document.createElement('div');
+            row.style.cssText = 'display:flex;gap:0.25rem;font-size:0.7rem;color:#888;margin-top:0.25rem';
+            const ed = document.createElement('span');
+            ed.textContent = 'edit';
+            ed.style.cursor = 'pointer';
+            ed.addEventListener('click', (e) => {
+              e.stopPropagation();
+              openSubmodal(s);
+            });
+            row.appendChild(ed);
+            const sh = document.createElement('span');
+            sh.textContent = 'share';
+            sh.style.cursor = 'pointer';
+            sh.addEventListener('click', (e) => {
+              e.stopPropagation();
+              const enc = packStyle(s.icon, s.title, s.body, s.id);
+              const url = location.href.split('?')[0] + '?style=' + enc;
+              navigator.clipboard.writeText(url);
+              sh.textContent = 'copied!';
+              setTimeout(() => sh.textContent = 'share', 1500);
+            });
+            row.appendChild(sh);
+            const dl = document.createElement('span');
+            dl.textContent = 'del';
+            dl.style.cursor = 'pointer';
+            dl.addEventListener('click', (e) => {
+              e.stopPropagation();
+              const styles = loadStyles().filter(x => x.id !== s.id);
+              saveStyles(styles);
+              renderStrip();
+              showToast(`style "${s.title}" deleted`);
+            });
+            row.appendChild(dl);
+            c.appendChild(row);
+          }
+          c.addEventListener('click', async () => {
+            await style(textEl.value, s.body);
+          });
+          strip.appendChild(c);
+        }
+      };
+      const EMOJIS = ['😀','😁','😂','🤣','😃','😄','😅','😆','😉','😊','😋','😌','😍','🥰','😘','😗','😙','😚','🙂','🤗','🤩','🤔','🤨','😐','😑','😶','🙄','😏','😮','😪','😫','😴','😛','😜','😝','🤤','😒','😓','😔','😕','🙃','🤑','😲','😖','😞','😟','😤','😢','😭','😦','😧','😨','😩','🤯','😬','😱','🥵','🥶','😳','🤪','😵','😡','🤬','🖐','✋','👌','🤌','🤏','✌','🤞','🤟','🤘','🤙','👍','👎','✊','👊','🤛','🤜','👏','🙌','👐','🤲','🤝','🙏','✍','💅','👂','👃','🦶','🦵','💋','👀','🧠','🗣','👤','👶','👦','👧','👨','👩','🧑','👴','👵','🧓','🐶','🐱','🐭','🐹','🐰','🦊','🐻','🐼','🐨','🐯','🦁','🐮','🐷','🐸','🐵','🐔','🐧','🐦','🦆','🦅','🦉','🦇','🐺','🐴','🦄','🐝','🦋','🐌','🐞','🐜','🦟','🦂','🐢','🐍','🦎','🐙','🦑','🐬','🐳','🐋','🦈','🐊','🐅','🐆','🦍','🦧','🐘','🦏','🐪','🐫','🦒','🦘','🐄','🐎','🐖','🐑','🦙','🐐','🦌','🐕','🐈','🕊','🐇','🦝','🐀','🐉','🌵','🌲','🌳','🌴','🌱','🌿','☘','🍀','🍃','🍂','🍁','🍄','🌺','🌸','🌼','🌻','🌞','🌝','🌚','🌕','🌖','🌑','🌒','🌙','🌎','🌍','🌏','💫','⭐','🌟','✨','⚡','🔥','🌈','☀','⛅','☁','🌧','⛈','🌩','🌨','❄','☃','💨','💧','💦','☔','🌊','🍏','🍎','🍐','🍊','🍋','🍌','🍉','🍇','🍓','🍒','🍑','🥭','🍍','🥥','🥝','🍅','🍆','🥑','🥦','🌽','🥕','🍞','🧀','🥚','🍳','🥓','🍔','🍟','🍕','🥪','🌮','🌯','🍝','🍜','🍲','🍣','🍱','🥟','🍤','🍙','🍚','🍡','🍧','🍨','🍦','🧁','🍰','🎂','🍭','🍬','🍫','🍿','🍩','🍪','🥜','🍯','🥛','☕','🍵','🧃','🥤','🍺','🍻','🥂','🍷','🥃','🍸','🍹','🍾','🥄','🍴','⌚','📱','💻','⌨','🖥','🖨','🖱','💿','📀','📷','📸','🎥','📞','📺','📻','⏰','⌛','📡','🔋','🔌','💡','🔦','🕯','💸','💵','💰','💳','💎','⚖','🔧','🔨','⚙','🧱','🔫','💣','🔪','🗡','🚬','⚰','⚱','🔮','🔭','🔬','💊','💉','🦠','🧹','🧺','🚽','🚿','🛁','🖼','🧸','🔇','🔈','🔉','🔊','📢','🎀','🎁','🏆','🏅','🥇','🥈','🥉','⚽','⚾','🏀','🏐','🏈','🎾','🎳','🏓','🥊','🥋','🎿','🏂','🏄','🏊','🎪','🎭','🎨','🎬','🎤','🎧','🎼','🎹','🥁','🎷','🎺','🎸','🎻','🎲','🎯','🎮','🎰','🗿','🃏','🀄'];
+      const emojiPreview = document.getElementById('emoji-preview');
+      const emojiGrid = document.getElementById('emoji-grid');
+      EMOJIS.forEach(e => {
+        const s = document.createElement('span');
+        s.textContent = e;
+        s.addEventListener('click', () => {
+          emojiPreview.textContent = e;
+          emojiGrid.classList.remove('show');
+        });
+        emojiGrid.appendChild(s);
+      });
+      emojiPreview.addEventListener('click', (e) => {
+        e.stopPropagation();
+        emojiGrid.classList.toggle('show');
+      });
+      document.addEventListener('click', () => {
+        emojiGrid.classList.remove('show');
+      });
+      emojiGrid.addEventListener('click', (e) => {
+        e.stopPropagation();
+      });
+      let editingId = null;
+      const openSubmodal = (style) => {
+        editingId = style && style.id ? style.id : null;
+        document.getElementById('new-title').value = style ? style.title : '';
+        emojiPreview.textContent = style ? style.icon : '📜';
+        emojiGrid.classList.remove('show');
+        document.getElementById('new-body').value = style ? style.body : '';
+        document.getElementById('submodal-label').textContent = editingId ? 'edit style' : 'create style';
+        submodal.classList.add('open');
+      };
+      const closeSubmodal = () => {
+        editingId = null;
+        emojiGrid.classList.remove('show');
+        submodal.classList.remove('open');
+      };
+      document.getElementById('cancel-style').addEventListener('click', closeSubmodal);
+      document.getElementById('close-submodal').addEventListener('click', closeSubmodal);
+      document.getElementById('save-style').addEventListener('click', () => {
+        const title = document.getElementById('new-title').value.trim();
+        const icon = emojiPreview.textContent;
+        const body = document.getElementById('new-body').value.trim();
+        if(!title || !body) return;
+        const styles = loadStyles();
+        if(editingId) {
+          const idx = styles.findIndex(s => s.id === editingId);
+          if(idx !== -1) styles[idx] = { ...styles[idx], title, icon, body };
+        } else {
+          styles.unshift({ title, icon, body, id: Math.random().toString(36).slice(2, 8) });
+        }
+        saveStyles(styles);
+        closeSubmodal();
+        renderStrip();
+        showToast(`style "${title}" ${editingId ? 'updated' : 'saved'}`);
+      });
+      document.getElementById('stylize').addEventListener('click', () => {
+        resultEl.value = textEl.value;
+        copyBtn.style.display = 'none';
+        renderStrip();
+        modal.classList.add('open');
+        backdrop.classList.add('show');
+      });
+      document.getElementById('close-modal').addEventListener('click', () => {
+        modal.classList.remove('open');
+        backdrop.classList.remove('show');
+      });
+      backdrop.addEventListener('click', () => {
+        modal.classList.remove('open');
+        backdrop.classList.remove('show');
+      });
+      copyBtn.addEventListener('click', () => {
+        navigator.clipboard.writeText(resultEl.value);
+        copyBtn.textContent = 'copied!';
+        setTimeout(() => copyBtn.textContent = 'copy', 1500);
+      });
+      document.addEventListener('keydown', (e) => {
+        if((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+          e.preventDefault();
+          document.getElementById('stylize').click();
+        }
+      });
+      let autosaveTimer;
+      textEl.addEventListener('input', () => {
+        clearTimeout(autosaveTimer);
+        autosaveTimer = setTimeout(() => {
+          localStorage.setItem('draft', textEl.value);
+        }, 500);
+      });
+      const draft = localStorage.getItem('draft');
+      if(draft) textEl.value = draft;
+      (() => {
+        const params = new URLSearchParams(location.search);
+        const enc = params.get('style');
+        if(enc) {
+          const style = unpackStyle(enc);
+          if(style) {
+            const styles = loadStyles();
+            const idx = style.id ? styles.findIndex(x => x.id === style.id) : -1;
+            if(idx !== -1) {
+              styles[idx] = { ...styles[idx], title: style.title, icon: style.icon, body: style.body };
+              showToast(`style "${style.title}" updated`);
+            } else {
+              styles.unshift({ title: style.title, icon: style.icon, body: style.body, id: style.id || Math.random().toString(36).slice(2, 8) });
+              showToast(`style "${style.title}" added`);
+            }
+            saveStyles(styles);
+            renderStrip();
+            modal.classList.add('open');
+            backdrop.classList.add('show');
+            resultEl.value = textEl.value;
+            copyBtn.style.display = 'none';
+          }
+        }
+      })();
+      initSettings();
+    </script>
+  </body>
+</html>
