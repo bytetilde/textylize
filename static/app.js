@@ -6,6 +6,10 @@ const strip = document.getElementById('strip');
 const submodal = document.getElementById('submodal');
 const toast = document.getElementById('toast');
 const copyBtn = document.getElementById('copy-btn');
+const adjustResultRows = () => {
+  resultEl.style.height = 'auto';
+  resultEl.style.height = resultEl.scrollHeight + 'px';
+};
 const settingsModal = document.getElementById('settings-modal');
 const darkToggle = document.getElementById('dark-toggle');
 const modelSelect = document.getElementById('model-select');
@@ -273,6 +277,7 @@ const style = async (text, stylePrompt) => {
   }
   const s = getSettings();
   resultEl.value = '';
+  adjustResultRows();
   copyBtn.style.display = 'none';
   const prompt = '```plaintext\n' + text + '\n```\n\n' + stylePrompt;
   try {
@@ -308,13 +313,18 @@ const style = async (text, stylePrompt) => {
         try {
           const chunk = JSON.parse(payload);
           const content = chunk.choices?.[0]?.delta?.content || '';
-          if(content) resultEl.value += content;
+          if(content) {
+            resultEl.value += content;
+            adjustResultRows();
+          }
         } catch {}
       }
     }
     if(resultEl.value) copyBtn.style.display = 'block';
+    adjustResultRows();
   } catch(e) {
     resultEl.value = '';
+    adjustResultRows();
     showToast('error: ' + e.message);
     copyBtn.style.display = 'none';
   }
@@ -458,6 +468,7 @@ document.getElementById('save-style').addEventListener('click', () => {
 });
 document.getElementById('stylize').addEventListener('click', () => {
   resultEl.value = textEl.value;
+  adjustResultRows();
   copyBtn.style.display = 'none';
   renderStrip();
   modal.classList.add('open');
@@ -516,6 +527,7 @@ if(draft) textEl.value = draft;
       modal.classList.add('open');
       backdrop.classList.add('show');
       resultEl.value = textEl.value;
+      adjustResultRows();
       copyBtn.style.display = 'none';
     }
   }

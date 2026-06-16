@@ -18,7 +18,7 @@ button { border-radius: 0; -webkit-appearance: none; appearance: none; min-heigh
 .scard .icon { font-size: 1.5rem; }
 .scard .title { font-size: 0.8rem; white-space: nowrap; }
 #result-wrap { flex: 1; padding: 0 1rem 0.75rem; display: flex; flex-direction: column; overflow: hidden; position: relative; }
-#result { width: 100%; flex: 1; resize: none; border: 1px solid var(--border); padding: 0.5rem; font-size: 1rem; box-sizing: border-box; min-height: 120px; overflow-y: auto; background: var(--result-bg); color: var(--fg); }
+#result { width: 100%; resize: none; border: 1px solid var(--border); padding: 0.5rem; font-size: 1rem; box-sizing: border-box; overflow-y: auto; max-height: calc(8lh + 1rem + 2px); background: var(--result-bg); color: var(--fg); }
 #copy-btn { position: absolute; bottom: 1.25rem; right: 1.5rem; min-height: 32px; padding: 0.3rem 0.6rem; font-size: 0.8rem; z-index: 2; opacity: 0.8; }
 #submodal { display: none; position: fixed; inset: 0; background: var(--modal-bg); z-index: 10; flex-direction: column; padding: 1rem; }
 #submodal.open { display: flex; }
