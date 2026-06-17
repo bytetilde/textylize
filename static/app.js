@@ -40,7 +40,7 @@ const updateAuthUI = () => {
   } else {
     toggle.textContent = 'connect';
     btn.onclick = () => {
-      const params = new URLSearchParams({ redirect_uri: location.href.split('#')[0], client_id: CLIENT_ID });
+      const params = new URLSearchParams({ redirect_uri: location.origin + location.pathname, client_id: CLIENT_ID });
       window.location.href = 'https://enter.pollinations.ai/authorize?' + params;
     };
   }
@@ -555,7 +555,7 @@ if(draft) textEl.value = draft;
   const key = params.get('api_key');
   if(key) {
     setApiKey(key);
-    history.replaceState(null, '', location.pathname + location.search);
+    history.replaceState(null, '', location.pathname);
     showToast('connected!');
   }
   updateAuthUI();
