@@ -18,50 +18,54 @@
     <div id="modal">
       <div id="modal-header">
         <span>stylize</span>
-        <button id="close-modal">&times;</button>
       </div>
       <div id="strip"></div>
       <div id="result-wrap">
-        <textarea id="result" readonly rows="1"></textarea>
-        <button id="copy-btn" style="display:none">copy</button>
+        <textarea id="result" readonly rows="7"></textarea>
+        <div id="result-actions" style="display:none">
+          <button class="stop-btn" id="stop-btn">stop</button>
+          <button id="apply-btn">apply</button>
+          <button id="copy-btn">copy</button>
+        </div>
       </div>
     </div>
     <div id="submodal">
-      <div id="submodal-header">
-        <span id="submodal-label">create style</span>
-        <button id="close-submodal">&times;</button>
-      </div>
-      <div id="emoji-outer">
-        <div id="emoji-preview" class="emoji-large">&#x1F4DC;</div>
-        <div id="emoji-grid"></div>
-      </div>
-      <input id="new-title" placeholder="title" maxlength="32">
-      <textarea id="new-body" placeholder="style instructions..." rows="5"></textarea>
-      <div class="row">
-        <button id="cancel-style">cancel</button>
-        <button id="save-style">save</button>
+      <div id="submodal-panel">
+        <h2 id="submodal-label">create style</h2>
+        <div id="emoji-outer">
+          <div id="emoji-preview" class="emoji-large">&#x1F4DC;</div>
+          <div id="emoji-grid"></div>
+          <input id="new-title" placeholder="title" maxlength="24">
+        </div>
+        <textarea id="new-body" placeholder="style instructions..." rows="8"></textarea>
+        <div class="row">
+          <button id="cancel-style">cancel</button>
+          <button id="save-style">save</button>
+        </div>
       </div>
     </div>
     <div id="settings-modal">
-      <div id="backdrop2" style="position:fixed;inset:0;background:var(--overlay);z-index:-1;"></div>
+      <div id="backdrop2"></div>
       <div id="settings-panel">
-        <button id="settings-close">&times;</button>
         <h2>settings</h2>
         <div class="srow">
           <label>dark mode</label>
-          <div class="toggle-wrap" id="dark-toggle-wrap">
-            <div class="toggle" id="dark-toggle"></div>
-          </div>
+          <label class="toggle-wrap" id="dark-toggle-wrap">
+            <input type="checkbox" id="dark-toggle">
+            <div class="toggle-track"><div class="toggle-knob"></div></div>
+          </label>
         </div>
         <div class="srow" id="auth-row">
           <label>account</label>
-          <div class="toggle-wrap" id="auth-btn">
+          <div id="auth-btn">
             <div class="toggle" id="auth-toggle">connect</div>
           </div>
         </div>
         <div class="srow">
           <label>model</label>
-          <select id="model-select"></select>
+          <div class="select-wrap">
+            <select id="model-select"></select>
+          </div>
         </div>
         <div class="srow">
           <label>temperature</label>
@@ -70,7 +74,7 @@
         </div>
         <div class="srow">
           <label>max tokens</label>
-          <input type="number" id="maxtks-input" min="64" max="8192" step="64" value="1024">
+          <input type="number" id="maxtks-input" min="64" max="8192" step="64" value="1024" style="-moz-appearance:textfield">
         </div>
       </div>
     </div>
