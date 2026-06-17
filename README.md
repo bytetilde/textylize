@@ -2,7 +2,7 @@
 
 a client-side text stylizer powered by [pollinations.ai](https://github.com/pollinations/pollinations). write text, pick a style, get a rewrite
 
-this app is inspired by [Telegram's text editor](https://telegram.org/blog/ai-editor-mighty-polls-and-more#ai-text-editor) with [custom AI styles](https://telegram.org/blog/ai-editor-mighty-polls-and-more#ai-text-editor)
+this app is inspired by [Telegram's text editor](https://telegram.org/blog/ai-editor-mighty-polls-and-more#ai-text-editor) with [custom AI styles](https://telegram.org/blog/ai-bot-revolution-11-new-features#custom-ai-styles)
 
 - built-in styles: formal, short, corporate jargon, biblical
 - custom styles: create, save and share your own styles
